@@ -1,0 +1,32 @@
+﻿@using Library.Infrastructure.Models
+@page "/books"
+@inject HttpClient Http
+
+<h3>Books</h3>
+
+<ul>
+    @if (books == null)
+    {
+        <li>Loading...</li>
+    }
+    else if (!books.Any())
+    {
+        <li>No books found.</li>
+    }
+    else
+    {
+        @foreach (var book in books)
+        {
+            <li>@book.Title by @book.Author</li>
+        }
+    }
+</ul>
+
+@code {
+    private List<BookModel> books;
+
+    protected override async Task OnInitializedAsync()
+    {
+        books = await Http.GetFromJsonAsync<List<BookModel>>("http://localhost:5258/api/Books");
+    }
+}

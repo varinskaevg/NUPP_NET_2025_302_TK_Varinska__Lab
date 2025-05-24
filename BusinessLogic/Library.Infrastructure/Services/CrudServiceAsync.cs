@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
 namespace Library.Infrastructure.Services
 {
@@ -19,13 +18,14 @@ namespace Library.Infrastructure.Services
         public async Task<bool> CreateAsync(T element)
         {
             await _repository.AddAsync(element);
+            await _repository.SaveChangesAsync();
             return true;
         }
 
-        public async Task<T?> ReadAsync(Guid id)
+        public async Task<T?> ReadAsync(int id)
         {
-            var entity = await _repository.GetAllAsync(); 
-            return entity.FirstOrDefault(e => (e as dynamic).Id == id);
+            var all = await _repository.GetAllAsync();
+            return all.FirstOrDefault(e => (e as dynamic).Id == id);
         }
 
         public async Task<IEnumerable<T>> ReadAllAsync()
@@ -42,18 +42,21 @@ namespace Library.Infrastructure.Services
         public async Task<bool> UpdateAsync(T element)
         {
             await _repository.UpdateAsync(element);
+            await _repository.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> RemoveAsync(T element)
         {
             await _repository.DeleteAsync(element);
+            await _repository.SaveChangesAsync();
             return true;
         }
 
-        public Task<bool> SaveAsync()
+        public async Task<bool> SaveAsync()
         {
-            return Task.FromResult(true);
+            await _repository.SaveChangesAsync();
+            return true;
         }
     }
 }

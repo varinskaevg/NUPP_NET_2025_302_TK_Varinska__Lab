@@ -2,6 +2,7 @@
 using Library.Infrastructure.Models;
 using Library.Infrastructure.Services;
 using LibraryREST.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LibraryREST.Controllers
 {
@@ -16,8 +17,9 @@ namespace LibraryREST.Controllers
             _bookService = bookService;
         }
 
-        // GET: api/Books
+        // 🔓 Перегляд доступний всім
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<BookApiModel>>> GetAll()
         {
             var books = await _bookService.ReadAllAsync();
@@ -31,8 +33,8 @@ namespace LibraryREST.Controllers
             return Ok(result);
         }
 
-        // GET: api/Books/1
         [HttpGet("{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<BookApiModel>> Get(int id)
         {
             var book = await _bookService.ReadAsync(id);
@@ -49,8 +51,9 @@ namespace LibraryREST.Controllers
             return Ok(dto);
         }
 
-        // POST: api/Books
+        // 🔐 Створення дозволено бібліотекарям і адміністраторам
         [HttpPost]
+        [Authorize(Roles = "Librarian,Admin")]
         public async Task<IActionResult> Create([FromBody] BookCreateModel model)
         {
             var newBook = new BookModel
@@ -65,12 +68,12 @@ namespace LibraryREST.Controllers
             if (!created) return BadRequest("Could not create book.");
 
             await _bookService.SaveAsync();
-
             return CreatedAtAction(nameof(Get), new { id = newBook.Id }, newBook);
         }
 
-        // PUT: api/Books/1
+        // 🔐 Оновлення дозволено бібліотекарям і адміністраторам
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Librarian,Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] BookUpdateModel model)
         {
             var book = await _bookService.ReadAsync(id);
@@ -85,12 +88,12 @@ namespace LibraryREST.Controllers
             if (!updated) return BadRequest("Update failed.");
 
             await _bookService.SaveAsync();
-
             return NoContent();
         }
 
-        // DELETE: api/Books/1
+        // 🔐 Видалення дозволено лише адміністраторам
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var book = await _bookService.ReadAsync(id);
@@ -101,8 +104,19 @@ namespace LibraryREST.Controllers
             if (!deleted) return BadRequest("Delete failed.");
 
             await _bookService.SaveAsync();
-
             return NoContent();
+        }
+
+        // 🔐 Бронювання книги — лише для користувачів
+        [HttpPost("{id:int}/reserve")]
+        [Authorize(Roles = "User")]
+        public async Task<IActionResult> ReserveBook(int id)
+        {
+            var book = await _bookService.ReadAsync(id);
+            if (book == null) return NotFound();
+
+            // Тут буде логіка бронювання
+            return Ok($"Книга '{book.Title}' заброньована.");
         }
     }
 }

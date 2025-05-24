@@ -1,20 +1,14 @@
 ﻿using Library.Infrastructure.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Library.Infrastructure.Models;
 
-
-namespace Library.Infrastructure
+namespace Library.Infrastructure.Data
 {
-    public class LibraryContext : DbContext
+    public class LibraryDbContext : IdentityDbContext<AppUser>
     {
-        public LibraryContext(DbContextOptions<LibraryContext> options)
-            : base(options)
-        {
-        }
+        public LibraryDbContext(DbContextOptions<LibraryDbContext> options)
+            : base(options) { }
 
         public DbSet<BookModel> Books { get; set; }
         public DbSet<AudioBookModel> AudioBooks { get; set; }
@@ -25,19 +19,19 @@ namespace Library.Infrastructure
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // ===== Table-per-Type успадкування =====
+            base.OnModelCreating(modelBuilder);
+
+            // Наслідування (TPH або TPT)
             modelBuilder.Entity<BookModel>().ToTable("Books");
             modelBuilder.Entity<AudioBookModel>().ToTable("AudioBooks");
             modelBuilder.Entity<EBookModel>().ToTable("EBooks");
 
-            // ===== Один-до-багатьох: Book → LibraryMember =====
             modelBuilder.Entity<BookModel>()
                 .HasOne(b => b.LibraryMember)
                 .WithMany(l => l.BorrowedBooks)
                 .HasForeignKey(b => b.LibraryMemberId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ===== Багато-до-багатьох: Book ↔ Tag через BookTag =====
             modelBuilder.Entity<BookTagModel>()
                 .HasKey(bt => new { bt.BookId, bt.TagId });
 
@@ -50,8 +44,6 @@ namespace Library.Infrastructure
                 .HasOne(bt => bt.Tag)
                 .WithMany(t => t.BookTags)
                 .HasForeignKey(bt => bt.TagId);
-
-            base.OnModelCreating(modelBuilder);
         }
     }
 }

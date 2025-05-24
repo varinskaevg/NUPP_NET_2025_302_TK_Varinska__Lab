@@ -2,13 +2,48 @@
 using Library.Infrastructure.Models;
 using Library.Infrastructure.Repositories;
 using Library.Infrastructure.Services;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 🔹 Конфігурація БД
 builder.Services.AddDbContext<LibraryDbContext>(options =>
     options.UseSqlite("Data Source=library.db"));
 
+// 🔹 Identity + ролі
+builder.Services.AddIdentity<AppUser, IdentityRole>()
+    .AddEntityFrameworkStores<LibraryDbContext>()
+    .AddDefaultTokenProviders();
+
+// 🔹 JWT Аутентифікація
+var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!))
+    };
+});
+
+// 🔹 Сервіси
 builder.Services.AddScoped<IRepository<BookModel>, Repository<BookModel>>();
 builder.Services.AddScoped<ICrudServiceAsync<BookModel>, CrudServiceAsync<BookModel>>();
 
@@ -21,19 +56,57 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// 🔹 Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<LibraryDbContext>();
+await InitializeDatabaseAsync(app.Services);
 
-    db.Database.Migrate();
+app.Run();
+
+async Task InitializeDatabaseAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var scopedServices = scope.ServiceProvider;
+
+    var db = scopedServices.GetRequiredService<LibraryDbContext>();
+    await db.Database.MigrateAsync();
+
+    var roleManager = scopedServices.GetRequiredService<RoleManager<IdentityRole>>();
+    var roles = new[] { "User", "Librarian", "Admin" };
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+
+    var userManager = scopedServices.GetRequiredService<UserManager<AppUser>>();
+    string adminEmail = "admin@example.com";
+    string adminPass = "Admin123!";
+
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if (adminUser == null)
+    {
+        adminUser = new AppUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            FullName = "Адміністратор"
+        };
+
+        var result = await userManager.CreateAsync(adminUser, adminPass);
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+        }
+    }
 
     if (!db.LibraryMembers.Any())
     {
@@ -43,7 +116,7 @@ using (var scope = app.Services.CreateScope())
             Email = "test@example.com"
         };
         db.LibraryMembers.Add(testMember);
-        db.SaveChanges();
+        await db.SaveChangesAsync();
 
         var testBook = new BookModel
         {
@@ -53,8 +126,9 @@ using (var scope = app.Services.CreateScope())
             BookTags = new List<BookTagModel>()
         };
         db.Books.Add(testBook);
-        db.SaveChanges();
+        await db.SaveChangesAsync();
     }
 }
+
 
 app.Run();

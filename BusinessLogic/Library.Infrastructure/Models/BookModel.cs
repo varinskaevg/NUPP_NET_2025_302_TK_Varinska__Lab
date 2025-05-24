@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Library.Infrastructure.Models
@@ -14,9 +15,11 @@ namespace Library.Infrastructure.Models
 
         // Один-до-багатьох: Книга належить одному учаснику
         public int LibraryMemberId { get; set; }
-        public LibraryMemberModel LibraryMember { get; set; }
 
         // Багато-до-багатьох: Книга має багато тегів
         public List<BookTagModel> BookTags { get; set; }
+
+        [JsonIgnore] // Це призведе до того, що властивість не буде серіалізована в JSON
+        public LibraryMemberModel LibraryMember { get; set; }
     }
 }

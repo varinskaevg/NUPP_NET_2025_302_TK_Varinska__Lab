@@ -1,19 +1,12 @@
 # Стейдж 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:9.0-preview AS build
-WORKDIR /src
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /app
 
-# Копіюємо всі *.csproj файли проектів окремо, щоб кешувати restore
-COPY LibraryREST/LibraryREST.csproj LibraryREST/
-COPY BusinessLogic/Library.Infrastructure/Library.Infrastructure.csproj BusinessLogic/Library.Infrastructure/
-
-# Відновлюємо залежності
-COPY *.sln .  # або, якщо рішення в іншій папці, змінити шлях
-RUN dotnet restore LibraryREST/LibraryREST.csproj
-
-# Копіюємо весь код
+# Копіюємо увесь код
 COPY . .
 
-WORKDIR /src/LibraryREST
+# Публікуємо головний проєкт
+WORKDIR /app/LibraryREST
 RUN dotnet publish -c Release -o /app/out
 
 # Стейдж 2: Runtime

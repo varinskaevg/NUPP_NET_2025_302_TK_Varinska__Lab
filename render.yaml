@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: library-api-Lab5-Varinska
+    name: library-api--Varinska
     env: docker
     repo: https://github.com/varinskaevg/NUPP_NET_2025_302_TK_Varinska__Lab
     branch: Lab5

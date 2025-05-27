@@ -1,8 +1,10 @@
 services:
   - type: web
     name: library-api--Varinska
-    env: docker
-    repo: https://github.com/varinskaevg/NUPP_NET_2025_302_TK_Varinska__Lab
+    runtime: dotnet
     branch: Lab5
-    dockerfilePath: Dockerfile
-    plan: free
+    buildCommand: dotnet publish LibraryREST/LibraryREST.csproj -c Release -o out
+    startCommand: dotnet out/LibraryREST.dll
+    buildFilter:
+      paths:
+        - "**/*"

@@ -4,11 +4,10 @@ WORKDIR /src
 
 # Копіюємо всі *.csproj файли проектів окремо, щоб кешувати restore
 COPY LibraryREST/LibraryREST.csproj LibraryREST/
-COPY Library.Infrastructure/Library.Infrastructure.csproj Library.Infrastructure/
+COPY BusinessLogic/Library.Infrastructure/Library.Infrastructure.csproj BusinessLogic/Library.Infrastructure/
 
-
-# Відновлюємо залежності для рішення (рекомендується, якщо є *.sln)
-COPY *.sln .
+# Відновлюємо залежності
+COPY *.sln .  # або, якщо рішення в іншій папці, змінити шлях
 RUN dotnet restore LibraryREST/LibraryREST.csproj
 
 # Копіюємо весь код

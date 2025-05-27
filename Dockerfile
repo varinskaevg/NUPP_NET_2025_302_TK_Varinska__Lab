@@ -2,12 +2,18 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0-preview AS build
 WORKDIR /src
 
-# 🔁 Важливо: правильний шлях
+# Копіюємо всі *.csproj файли проектів окремо, щоб кешувати restore
 COPY LibraryREST/LibraryREST.csproj LibraryREST/
+COPY Library.Infrastructure/Library.Infrastructure.csproj Library.Infrastructure/
+
+
+# Відновлюємо залежності для рішення (рекомендується, якщо є *.sln)
+COPY *.sln .
 RUN dotnet restore LibraryREST/LibraryREST.csproj
 
-# Копіюємо все інше
+# Копіюємо весь код
 COPY . .
+
 WORKDIR /src/LibraryREST
 RUN dotnet publish -c Release -o /app/out
 
